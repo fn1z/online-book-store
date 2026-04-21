@@ -1,5 +1,6 @@
 package com.example.onlinebookstore.repository;
 
+import com.example.onlinebookstore.exception.DataProcessingException;
 import com.example.onlinebookstore.model.Book;
 import jakarta.persistence.EntityManagerFactory;
 import java.util.List;
@@ -18,8 +19,10 @@ public class BookRepositoryImpl implements BookRepository {
 
     @Override
     public Book save(Book book) {
+        Session session = null;
         Transaction transaction = null;
-        try (Session session = sessionFactory.openSession()) {
+        try {
+            session = sessionFactory.openSession();
             transaction = session.beginTransaction();
             session.persist(book);
             transaction.commit();
@@ -28,16 +31,26 @@ public class BookRepositoryImpl implements BookRepository {
             if (transaction != null) {
                 transaction.rollback();
             }
-            throw new RuntimeException("Can't save book: " + book, e);
+            throw new DataProcessingException("Can't save book: " + book, e);
+        } finally {
+            if (session != null) {
+                session.close();
+            }
         }
     }
 
     @Override
     public List<Book> findAll() {
-        try (Session session = sessionFactory.openSession()) {
+        Session session = null;
+        try {
+            session = sessionFactory.openSession();
             return session.createQuery("from Book", Book.class).getResultList();
         } catch (Exception e) {
-            throw new RuntimeException("Can't get all books", e);
+            throw new DataProcessingException("Can't get all books", e);
+        } finally {
+            if (session != null) {
+                session.close();
+            }
         }
     }
 }
